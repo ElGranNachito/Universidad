@@ -6,39 +6,69 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
+#include <sys/time.h>
+#include <string.h>
 
 __pid_t childPID;
 
+int callCounter = 0;
+char childExecutedCommand = 0;
+char* command;
+char** commandArgs;
+
 void child_urg_handler()
 {
+	printf("ya va!\n");
 
+	callCounter++;
 }
 
 void child_process()
 {
 	signal(SIGURG, child_urg_handler);
+
+	while(callCounter < 5)
+	{
+		pause();
+	}
+
+	kill(getppid(), SIGINT);
+
+	if(execvp(command, commandArgs) != 0)
+	{
+		printf("Todo mal");
+	}
 }
 
 void parent_int_handler(int sig)
 {
-	sigset_t sigs2Block;
-	sigset_t old;
-
-	sigemptyset(&sigs2Block);
-	sigemptyset(&sigs2Block);
-	sigaddset(&sigs2Block, SIGCHLD);
-	sigprocmask(SIG_BLOCK, &sigs2Block, &old);
-	signal(SIGCHLD, NULL);
-	sigprocmask(SIG_SETMASK, &old, NULL);
+	childExecutedCommand = 1;
 }
 
 void parent_process()
 {
 	signal(SIGINT, parent_int_handler);
+
+	sleep(1);
+
+	while(!childExecutedCommand)
+	{
+		printf("sup!\n");
+
+		kill(childPID, SIGURG);
+
+		sleep(1);
+	}
+
+	wait(NULL);	
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
   	
+	command 	= argv[1];
+	commandArgs = &argv[1];
+	
 	childPID = fork();
 
 	if(childPID == 0)

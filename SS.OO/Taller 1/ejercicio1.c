@@ -64,16 +64,13 @@ void term_handler_child(int sig)
 
     if(n == cursedNumber)
     {
-        printf("Puta carajo\n");
-
-        kill(getppid(), SIGTERM);
+        printf("Puta carajo %d\n", getpid());
 
         exit(0);
     }
 }
 
-void run_process()
-{
+void run_process(){
     signal(SIGTERM, term_handler_child);
 
     while(1)
@@ -100,7 +97,7 @@ void create_child_processes()
     }
 }
 
-void term_handler_parent(int sig)
+void child_died_handler(int sig)
 {
     __pid_t deadChildPID = wait(NULL);
 
@@ -118,12 +115,14 @@ int main(int argc, char const *argv[]){
     validate_argc(argc);
     validate_and_parse_argv(argv);
 
-    signal(SIGTERM, term_handler_parent);
+    signal(SIGCHLD, child_died_handler);
 
     create_child_processes();
 
     for(; roundCount > 0; roundCount--)
         run_round();
+
+    signal(SIGCHLD, NULL);
 
     for(int i = 0; i < processCount; ++i)
     {
